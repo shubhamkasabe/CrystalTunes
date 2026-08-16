@@ -38,6 +38,7 @@
 /* Album Art Animator */
 @keyframes album-pulse { 0% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.05); filter: brightness(1.2); } 100% { transform: scale(1); filter: brightness(1); } }
 .album-art-animator { animation: album-pulse 0.6s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+.fp-visuals-container.show-equalizer .full-player-thumb { opacity: 0.2; filter: blur(5px); }
 
 
 /* Lyrics Overlay */
@@ -647,11 +648,17 @@ function resizeVisualizer() {
   }
 }
 function cycleVisualizerMode() {
-  vizMode = (vizMode + 1) % 5;
+  vizMode = (vizMode + 1) % 6;
   
   var thumb = document.getElementById('fp-thumb');
   if (vizMode === 4) thumb.classList.add('album-art-animator');
   else thumb.classList.remove('album-art-animator');
+
+  var vc = document.querySelector('.fp-visuals-container');
+  if (vc) {
+    if (vizMode === 5) vc.classList.add('show-equalizer');
+    else vc.classList.remove('show-equalizer');
+  }
 
   if (vizMode === 0) {
     if (vizCtx) vizCtx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
@@ -660,8 +667,9 @@ function cycleVisualizerMode() {
   else if (vizMode === 2) showToast('Visualizer: Geometric Pattern', 'info');
   else if (vizMode === 3) showToast('Visualizer: Particle System', 'info');
   else if (vizMode === 4) showToast('Visualizer: Album Art Animator', 'info');
+  else if (vizMode === 5) showToast('Visualizer: Equalizer Bars', 'info');
 
-  if (vizMode > 0 && vizMode < 4 && state.isPlaying) {
+  if (vizMode > 0 && vizMode !== 4 && state.isPlaying) {
     if (!vizRAF) vizRAF = requestAnimationFrame(renderVisualizer);
   }
 }
@@ -753,12 +761,24 @@ function renderVisualizer(time) {
     }
     vizCtx.globalAlpha = 1.0;
   }
+  else if (vizMode === 5) { // Equalizer Bars
+    var bars = 24;
+    var barWidth = w / bars;
+    vizCtx.fillStyle = color;
+    vizCtx.shadowBlur = 15;
+    vizCtx.shadowColor = color;
+    for (var i = 0; i < bars; i++) {
+      var height = (Math.sin(time / 200 + i * 0.4) * 0.5 + 0.5) * h * 0.5 * beat;
+      height += Math.random() * 30 * beat;
+      vizCtx.fillRect(i * barWidth + 2, h - height, barWidth - 4, height);
+    }
+  }
   
   vizRAF = requestAnimationFrame(renderVisualizer);
 }
 
 function triggerVisualizer() {
-  if (state.isPlaying && vizMode > 0 && vizMode < 4 && !vizRAF) {
+  if (state.isPlaying && vizMode > 0 && vizMode !== 4 && !vizRAF) {
     vizRAF = requestAnimationFrame(renderVisualizer);
   }
 }
