@@ -389,7 +389,7 @@ function openHelpModal(){
   openModal(h)
 }
 
-function openFullPlayer(){document.getElementById('full-player').classList.add('open');document.body.style.overflow='hidden';updateFullPlayerUI()}
+function openFullPlayer(){document.getElementById('full-player').classList.add('open');document.body.style.overflow='hidden';updateFullPlayerUI();setTimeout(function(){if(typeof resizeVisualizer==='function')resizeVisualizer()},50)}
 function closeFullPlayer(){document.getElementById('full-player').classList.remove('open');document.body.style.overflow=''}
 function updateFullPlayerUI(){
   var fp=document.getElementById('full-player');if(!fp||!fp.classList.contains('open'))return;
@@ -668,6 +668,7 @@ function cycleVisualizerMode() {
 
 function renderVisualizer(time) {
   if (!vizCtx || !vizCanvas) return;
+  if (vizCanvas.width === 0 || vizCanvas.height === 0) resizeVisualizer();
   if (!state.isPlaying || vizMode === 0 || vizMode === 4) {
     vizRAF = null;
     if (vizMode === 0 || vizMode === 4) vizCtx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
