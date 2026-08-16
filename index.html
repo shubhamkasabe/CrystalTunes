@@ -194,10 +194,8 @@
 </div>
 <div id="modal-overlay"><div class="modal-content" id="modal-body" role="dialog"></div></div>
 <div id="toast-container" aria-live="polite"></div>
-<div id="yt-player-container" aria-hidden="true"><div id="yt-player"></div></div>
+<audio id="audio-player" crossorigin="anonymous" style="display:none;"></audio>
 <script>
-
-const YOUTUBE_API_KEY = "AIzaSyAnaCy8RRT0Y_lunXKcBoWMK6nTxCtP8UU";
 
 const state = {
   currentTrack: null, queue: [], currentIndex: -1, isPlaying: false,
@@ -205,37 +203,32 @@ const state = {
   searchResults: [], favorites: [], history: [], currentPage: 'home',
   playerReady: false, pendingTrack: null, searchCache: {}, _lastSearchWasLive: false
 };
-let ytPlayer = null, progressInterval = null;
+let audioPlayer = null;
+let progressInterval = null;
+
+const DEMO_MP3 = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+const DEMO_MP3_2 = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
+const DEMO_MP3_3 = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3';
 
 const DEMO_TRACKS = [
-  {videoId:'dQw4w9WgXcQ',title:'Midnight Drive',channel:'Crystal Sessions',thumbnail:'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg'},
-  {videoId:'kJQP7kiw5Fk',title:'Golden Hour Groove',channel:'Sunset Beats',thumbnail:'https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg'},
-  {videoId:'60ItHLz5WEA',title:'Electric Dreams',channel:'Neon Wave',thumbnail:'https://i.ytimg.com/vi/60ItHLz5WEA/hqdefault.jpg'},
-  {videoId:'fJ9rUzIMcZQ',title:'Bohemian Echoes',channel:'Classic Vibes',thumbnail:'https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg'},
-  {videoId:'hTWKbfoikeg',title:'Ocean Breeze',channel:'Chill Harbour',thumbnail:'https://i.ytimg.com/vi/hTWKbfoikeg/hqdefault.jpg'},
-  {videoId:'YQHsXMglC9A',title:'Starlight Serenade',channel:'Cosmic Tunes',thumbnail:'https://i.ytimg.com/vi/YQHsXMglC9A/hqdefault.jpg'},
-  {videoId:'RgKAFK5djSk',title:'Velvet Sunset',channel:'Amber Sessions',thumbnail:'https://i.ytimg.com/vi/RgKAFK5djSk/hqdefault.jpg'},
-  {videoId:'JGwWNGJdvx8',title:'Urban Rhythm',channel:'City Pulse',thumbnail:'https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg'},
-  {videoId:'CevxZvSJLk8',title:'Rainy Afternoon',channel:'Lo-fi Lounge',thumbnail:'https://i.ytimg.com/vi/CevxZvSJLk8/hqdefault.jpg'},
-  {videoId:'OPf0YbXqDm0',title:'Neon Nights',channel:'Synthwave Studio',thumbnail:'https://i.ytimg.com/vi/OPf0YbXqDm0/hqdefault.jpg'},
-  {videoId:'lp-EO5I60KA',title:'Mountain Echo',channel:'Nature Sounds',thumbnail:'https://i.ytimg.com/vi/lp-EO5I60KA/hqdefault.jpg'},
-  {videoId:'e-ORhEE9VVg',title:'Crystal Waters',channel:'Ambient Flow',thumbnail:'https://i.ytimg.com/vi/e-ORhEE9VVg/hqdefault.jpg'},
-  {videoId:'hT_nvWreIhg',title:'Sapphire Dreams',channel:'Dreamwave',thumbnail:'https://i.ytimg.com/vi/hT_nvWreIhg/hqdefault.jpg'},
-  {videoId:'bo_efYhYU2A',title:'Autumn Leaves',channel:'Acoustic Garden',thumbnail:'https://i.ytimg.com/vi/bo_efYhYU2A/hqdefault.jpg'},
-  {videoId:'09R8_2nJtjg',title:'Solar Flare',channel:'Electronic Horizon',thumbnail:'https://i.ytimg.com/vi/09R8_2nJtjg/hqdefault.jpg'},
-  {videoId:'pRpeEdMmmQ0',title:'Twilight Jazz',channel:'Smooth Sessions',thumbnail:'https://i.ytimg.com/vi/pRpeEdMmmQ0/hqdefault.jpg'}
+  {videoId:'dQw4w9WgXcQ',audioUrl:DEMO_MP3,title:'Midnight Drive',channel:'Crystal Sessions',thumbnail:'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg'},
+  {videoId:'kJQP7kiw5Fk',audioUrl:DEMO_MP3_2,title:'Golden Hour Groove',channel:'Sunset Beats',thumbnail:'https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg'},
+  {videoId:'60ItHLz5WEA',audioUrl:DEMO_MP3_3,title:'Electric Dreams',channel:'Neon Wave',thumbnail:'https://i.ytimg.com/vi/60ItHLz5WEA/hqdefault.jpg'},
+  {videoId:'fJ9rUzIMcZQ',audioUrl:DEMO_MP3,title:'Bohemian Echoes',channel:'Classic Vibes',thumbnail:'https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg'},
+  {videoId:'hTWKbfoikeg',audioUrl:DEMO_MP3_2,title:'Ocean Breeze',channel:'Chill Harbour',thumbnail:'https://i.ytimg.com/vi/hTWKbfoikeg/hqdefault.jpg'},
+  {videoId:'YQHsXMglC9A',audioUrl:DEMO_MP3_3,title:'Starlight Serenade',channel:'Cosmic Tunes',thumbnail:'https://i.ytimg.com/vi/YQHsXMglC9A/hqdefault.jpg'},
+  {videoId:'RgKAFK5djSk',audioUrl:DEMO_MP3,title:'Velvet Sunset',channel:'Amber Sessions',thumbnail:'https://i.ytimg.com/vi/RgKAFK5djSk/hqdefault.jpg'},
+  {videoId:'JGwWNGJdvx8',audioUrl:DEMO_MP3_2,title:'Urban Rhythm',channel:'City Pulse',thumbnail:'https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg'},
+  {videoId:'CevxZvSJLk8',audioUrl:DEMO_MP3_3,title:'Rainy Afternoon',channel:'Lo-fi Lounge',thumbnail:'https://i.ytimg.com/vi/CevxZvSJLk8/hqdefault.jpg'}
 ];
 
 const ENGLISH_POP_TRACKS = [
-  {videoId:'60ItHLz5WEA',title:'Faded (NCS Release)',channel:'Alan Walker',thumbnail:'https://i.ytimg.com/vi/60ItHLz5WEA/hqdefault.jpg'},
-  {videoId:'MhQKe-aERsU',title:'Shape of You (Cover)',channel:'J.Fla',thumbnail:'https://i.ytimg.com/vi/MhQKe-aERsU/hqdefault.jpg'},
-  {videoId:'jUe8uoKdHao',title:'Despacito (Cover)',channel:'J.Fla',thumbnail:'https://i.ytimg.com/vi/jUe8uoKdHao/hqdefault.jpg'}
+  {videoId:'60ItHLz5WEA',audioUrl:DEMO_MP3_2,title:'Faded (NCS Release)',channel:'Alan Walker',thumbnail:'https://i.ytimg.com/vi/60ItHLz5WEA/hqdefault.jpg'},
+  {videoId:'MhQKe-aERsU',audioUrl:DEMO_MP3_3,title:'Shape of You (Cover)',channel:'J.Fla',thumbnail:'https://i.ytimg.com/vi/MhQKe-aERsU/hqdefault.jpg'}
 ];
 
 const BOLLYWOOD_LOFI_TRACKS = [
-  {videoId:'jLEhsLv9pis',title:'Tum Hi Ho (Lofi Remix)',channel:'Bollywood Lofi',thumbnail:'https://i.ytimg.com/vi/jLEhsLv9pis/hqdefault.jpg'},
-  {videoId:'NEhm1XNW2Kc',title:'Ilahi (Slowed + Reverb)',channel:'Lofi Chill',thumbnail:'https://i.ytimg.com/vi/NEhm1XNW2Kc/hqdefault.jpg'},
-  {videoId:'obMNB-n6PE4',title:'Chaleya (Lofi Mix)',channel:'Vibe Music',thumbnail:'https://i.ytimg.com/vi/obMNB-n6PE4/hqdefault.jpg'}
+  {videoId:'jLEhsLv9pis',audioUrl:DEMO_MP3,title:'Tum Hi Ho (Lofi Remix)',channel:'Bollywood Lofi',thumbnail:'https://i.ytimg.com/vi/jLEhsLv9pis/hqdefault.jpg'}
 ];
 
 ENGLISH_POP_TRACKS.forEach(function(t) { DEMO_TRACKS.unshift(t); });
@@ -326,7 +319,7 @@ function parseLyrics(lrc) {
 }
 
 
-function isDemoMode(){return !YOUTUBE_API_KEY||YOUTUBE_API_KEY==='PASTE_YOUR_YOUTUBE_API_KEY_HERE'}
+function isDemoMode(){return true;}
 function getGreeting(){var h=new Date().getHours();if(h<12)return'Good morning';if(h<17)return'Good afternoon';if(h<21)return'Good evening';return'Good night'}
 function formatTime(s){if(!s||isNaN(s)||!isFinite(s))return'0:00';var m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+(sec<10?'0':'')+sec}
 function escapeHTML(str){var d=document.createElement('div');d.appendChild(document.createTextNode(str||''));return d.innerHTML}
@@ -522,11 +515,48 @@ function searchYouTube(query){
 function handleSearch(){var i=document.getElementById('search-input');if(i&&i.value.trim())searchYouTube(i.value.trim())}
 function searchGenre(g){var i=document.getElementById('search-input');if(i)i.value=g;searchYouTube(g)}
 
-function loadYouTubeAPI(){if(window.YT&&window.YT.Player){initYouTubePlayer();return}var t=document.createElement('script');t.src='https://www.youtube.com/iframe_api';var f=document.getElementsByTagName('script')[0];if(f&&f.parentNode)f.parentNode.insertBefore(t,f);else document.head.appendChild(t)}
-window.onYouTubeIframeAPIReady=function(){initYouTubePlayer()};
-function initYouTubePlayer(){try{ytPlayer=new YT.Player('yt-player',{height:'1',width:'1',playerVars:{autoplay:0,controls:0,disablekb:1,fs:0,modestbranding:1,rel:0,iv_load_policy:3,origin:window.location.protocol==='file:'?'http://localhost':window.location.origin},events:{onReady:function(){state.playerReady=true;if(state.pendingTrack){playTrack(state.pendingTrack);state.pendingTrack=null}},onStateChange:handleYouTubeStateChange,onError:handleYouTubeError}})}catch(e){showToast('Player init failed','error')}}
-function handleYouTubeStateChange(ev){try{switch(ev.data){case YT.PlayerState.PLAYING:state.isPlaying=true;updatePlayPauseUI();startProgressUpdate();if(typeof triggerVisualizer==='function')triggerVisualizer();break;case YT.PlayerState.PAUSED:state.isPlaying=false;updatePlayPauseUI();stopProgressUpdate();break;case YT.PlayerState.ENDED:state.isPlaying=false;updatePlayPauseUI();stopProgressUpdate();handleTrackEnd();break}}catch(e){}}
-function handleYouTubeError(ev){var m={2:'Invalid video.',5:'Player error.',100:'Video not found.',101:'Playback blocked.',150:'Playback blocked.'};showToast((m[ev&&ev.data]||'Playback error.')+' Trying next...','warning');state.isPlaying=false;updatePlayPauseUI();setTimeout(function(){playNext()},1500)}
+// --- HTML5 Audio & Web Audio API Engine ---
+let audioCtx = null, audioSrc = null, analyser = null, freqData = null, timeData = null, audioPlayer = null;
+
+function initAudioPlayer() {
+  audioPlayer = document.getElementById('audio-player');
+  if(!audioPlayer) return;
+  state.playerReady = true;
+  
+  audioPlayer.addEventListener('play', function() {
+    state.isPlaying = true; updatePlayPauseUI(); startProgressUpdate();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    if(typeof triggerVisualizer==='function')triggerVisualizer();
+  });
+  audioPlayer.addEventListener('pause', function() {
+    state.isPlaying = false; updatePlayPauseUI(); stopProgressUpdate();
+  });
+  audioPlayer.addEventListener('ended', function() {
+    state.isPlaying = false; updatePlayPauseUI(); stopProgressUpdate(); handleTrackEnd();
+  });
+  audioPlayer.addEventListener('error', function() {
+    showToast('Playback error. Trying next...', 'warning');
+    setTimeout(playNext, 1500);
+  });
+}
+
+function initWebAudioAPI() {
+  if (audioCtx) return;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  try {
+    audioCtx = new AudioContextClass();
+    audioSrc = audioCtx.createMediaElementSource(audioPlayer);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    audioSrc.connect(analyser);
+    analyser.connect(audioCtx.destination);
+    freqData = new Uint8Array(analyser.frequencyBinCount);
+    timeData = new Uint8Array(analyser.fftSize);
+  } catch (e) {
+    console.error("Web Audio API Error:", e);
+  }
+}
 
 var currentLyrics = [];
 function initLyrics(trackId) {
@@ -544,7 +574,7 @@ function initLyrics(trackId) {
     p.textContent = l.text;
     p.dataset.time = l.time;
     p.dataset.index = idx;
-    p.onclick = function() { if(ytPlayer && state.playerReady) ytPlayer.seekTo(l.time, true); };
+    p.onclick = function() { if(audioPlayer && state.playerReady) audioPlayer.currentTime = l.time; };
     ls.appendChild(p);
   });
 }
@@ -561,29 +591,40 @@ function toggleLyrics() {
 }
 
 function playTrack(track){
-  if(!track||!track.videoId)return;
-  if(!state.playerReady){state.pendingTrack=track;showToast('Player loading...','info');document.getElementById('player-bar').classList.remove('hidden');updatePlayerTrackInfo(track);return}
+  if(!track||!(track.audioUrl || track.videoId))return;
+  if(!state.playerReady) initAudioPlayer();
   state.currentTrack=track;updatePlayerTrackInfo(track);addToHistory(track);
   document.getElementById('player-bar').classList.remove('hidden');
-  try{ytPlayer.loadVideoById(track.videoId);if(state.muted)ytPlayer.mute();else{ytPlayer.unMute();ytPlayer.setVolume(state.volume)}}catch(e){showToast('Click Play to start','info')}
-  highlightCurrentCard();updateFullPlayerUI();renderQueueDrawerList()
+  initWebAudioAPI();
+  audioPlayer.src = track.audioUrl || track.videoId;
+  audioPlayer.volume = state.muted ? 0 : state.volume / 100;
+  audioPlayer.play().catch(e => console.log('Autoplay prevented'));
+  highlightCurrentCard();updateFullPlayerUI();renderQueueDrawerList();
 }
 function updatePlayerTrackInfo(t){var e=document.getElementById('player-thumb-img');if(e)e.src=t.thumbnail;e=document.getElementById('player-title');if(e)e.textContent=t.title;e=document.getElementById('player-channel');if(e)e.textContent=t.channel;e=document.getElementById('fp-thumb');if(e)e.src=t.thumbnail;e=document.getElementById('fp-title');if(e)e.textContent=t.title;e=document.getElementById('fp-channel');if(e)e.textContent=t.channel;updateFavoriteButtons()}
-function togglePlayPause(){if(!state.playerReady||!ytPlayer){showToast('Player loading...','info');return}try{if(state.isPlaying)ytPlayer.pauseVideo();else{if(state.currentTrack)ytPlayer.playVideo();else if(DEMO_TRACKS.length>0)playTrack(DEMO_TRACKS[0])}}catch(e){showToast('Click Play to start','info')}}
+function togglePlayPause(){
+  if(!state.playerReady||!audioPlayer){showToast('Player loading...','info');return}
+  if(audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  if(state.isPlaying) audioPlayer.pause();
+  else{
+    if(state.currentTrack) audioPlayer.play();
+    else if(DEMO_TRACKS.length>0) playTrack(DEMO_TRACKS[0]);
+  }
+}
 function updatePlayPauseUI(){var pi=document.getElementById('play-icon'),pa=document.getElementById('pause-icon');if(pi)pi.style.display=state.isPlaying?'none':'block';if(pa)pa.style.display=state.isPlaying?'block':'none';var fp=document.getElementById('full-player');if(fp){var fpp=fp.querySelector('.fp-play'),fpa=fp.querySelector('.fp-pause');if(fpp)fpp.style.display=state.isPlaying?'none':'block';if(fpa)fpa.style.display=state.isPlaying?'block':'none'}var b=document.getElementById('play-pause-btn');if(b)b.setAttribute('aria-label',state.isPlaying?'Pause':'Play');highlightCurrentCard();updateFullPlayerUI()}
 function playNext(){var p=getPlayPool();if(p.length===0)return;if(state.isShuffle){var r;if(p.length>1){do{r=Math.floor(Math.random()*p.length)}while(state.currentTrack&&p[r].videoId===state.currentTrack.videoId)}else r=0;playTrack(p[r]);return}var ci=-1;if(state.currentTrack)ci=p.findIndex(function(t){return t.videoId===state.currentTrack.videoId});var ni=ci+1;if(ni>=p.length){if(state.repeatMode==='all')ni=0;else{state.isPlaying=false;updatePlayPauseUI();stopProgressUpdate();return}}playTrack(p[ni])}
-function playPrevious(){var p=getPlayPool();if(p.length===0)return;try{if(ytPlayer&&state.playerReady&&ytPlayer.getCurrentTime&&ytPlayer.getCurrentTime()>3){ytPlayer.seekTo(0,true);return}}catch(e){}var ci=-1;if(state.currentTrack)ci=p.findIndex(function(t){return t.videoId===state.currentTrack.videoId});var pi=ci-1;if(pi<0)pi=p.length-1;playTrack(p[pi])}
+function playPrevious(){var p=getPlayPool();if(p.length===0)return;try{if(audioPlayer&&state.playerReady&&audioPlayer.currentTime>3){audioPlayer.currentTime = 0;return}}catch(e){}var ci=-1;if(state.currentTrack)ci=p.findIndex(function(t){return t.videoId===state.currentTrack.videoId});var pi=ci-1;if(pi<0)pi=p.length-1;playTrack(p[pi])}
 function getPlayPool(){if(state.queue.length>0)return state.queue;if(state.searchResults.length>0)return state.searchResults;return DEMO_TRACKS}
-function handleTrackEnd(){if(state.repeatMode==='one'){try{ytPlayer.seekTo(0,true);ytPlayer.playVideo()}catch(e){}return}playNext()}
+function handleTrackEnd(){if(state.repeatMode==='one'){try{audioPlayer.currentTime = 0;audioPlayer.play()}catch(e){}return}playNext()}
 function toggleShuffle(){state.isShuffle=!state.isShuffle;var b=document.getElementById('shuffle-btn');if(b)b.classList.toggle('active',state.isShuffle);var f=document.getElementById('fp-shuffle');if(f)f.classList.toggle('active',state.isShuffle);showToast('Shuffle '+(state.isShuffle?'on':'off'),'info')}
 function toggleRepeat(){var m=['off','all','one'];state.repeatMode=m[(m.indexOf(state.repeatMode)+1)%3];var b=document.getElementById('repeat-btn'),f=document.getElementById('fp-repeat');if(b){b.classList.toggle('active',state.repeatMode!=='off');b.title='Repeat: '+state.repeatMode;var ex=b.querySelector('.r1b');if(ex)ex.remove();if(state.repeatMode==='one'){var bd=document.createElement('span');bd.className='r1b';bd.textContent='1';bd.style.cssText='position:absolute;top:2px;right:2px;font-size:9px;font-weight:700;color:var(--accent)';b.style.position='relative';b.appendChild(bd)}}if(f)f.classList.toggle('active',state.repeatMode!=='off');showToast('Repeat: '+state.repeatMode,'info')}
-function seekForward(){try{if(ytPlayer&&state.playerReady)ytPlayer.seekTo(ytPlayer.getCurrentTime()+10,true)}catch(e){}}
-function seekBackward(){try{if(ytPlayer&&state.playerReady)ytPlayer.seekTo(Math.max(0,ytPlayer.getCurrentTime()-10),true)}catch(e){}}
-function seekToPosition(ev){try{if(!ytPlayer||!state.playerReady)return;var b=ev.currentTarget,r=b.getBoundingClientRect();var p=Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width));var d=ytPlayer.getDuration();if(d)ytPlayer.seekTo(p*d,true)}catch(e){}}
+function seekForward(){if(audioPlayer) audioPlayer.currentTime += 10;}
+function seekBackward(){if(audioPlayer) audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);}
+function seekToPosition(ev){if(!audioPlayer) return;var b=ev.currentTarget,r=b.getBoundingClientRect();var p=Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width));var d=audioPlayer.duration;if(d) audioPlayer.currentTime = p*d;}
 
 function startProgressUpdate(){stopProgressUpdate();progressInterval=setInterval(updateProgress,200)}
 function stopProgressUpdate(){if(progressInterval){clearInterval(progressInterval);progressInterval=null}}
-function updateProgress(){try{if(!ytPlayer||!state.playerReady||!ytPlayer.getCurrentTime)return;var c=ytPlayer.getCurrentTime()||0,d=ytPlayer.getDuration()||0;var p=d>0?(c/d)*100:0;var e=document.getElementById('progress-fill');if(e)e.style.width=p+'%';e=document.getElementById('current-time');if(e)e.textContent=formatTime(c);e=document.getElementById('total-time');if(e)e.textContent=formatTime(d);e=document.getElementById('fp-progress-fill');if(e)e.style.width=p+'%';e=document.getElementById('fp-current');if(e)e.textContent=formatTime(c);e=document.getElementById('fp-total');if(e)e.textContent=formatTime(d);e=document.getElementById('progress-bar');if(e)e.setAttribute('aria-valuenow',Math.round(p));syncLyrics(c)}catch(e){}}
+function updateProgress(){try{if(!audioPlayer||!state.playerReady)return;var c=audioPlayer.currentTime||0,d=audioPlayer.duration||0;var p=d>0?(c/d)*100:0;var e=document.getElementById('progress-fill');if(e)e.style.width=p+'%';e=document.getElementById('current-time');if(e)e.textContent=formatTime(c);e=document.getElementById('total-time');if(e)e.textContent=formatTime(d);e=document.getElementById('fp-progress-fill');if(e)e.style.width=p+'%';e=document.getElementById('fp-current');if(e)e.textContent=formatTime(c);e=document.getElementById('fp-total');if(e)e.textContent=formatTime(d);e=document.getElementById('progress-bar');if(e)e.setAttribute('aria-valuenow',Math.round(p));syncLyrics(c)}catch(e){}}
 
 var activeLyricIndex = -1;
 function syncLyrics(currentTime) {
@@ -622,7 +663,7 @@ function setupEventListeners(){
   if(window.matchMedia('(prefers-reduced-motion:reduce)').matches){var s=getSettings();if(!s.reduceMotion){s.reduceMotion=true;saveSettings(s);applySettings(s)}}
 }
 
-function initApp(){loadSettings();loadFavorites();loadHistory();loadYouTubeAPI();setupEventListeners();initVisualizer();renderHome();if(isDemoMode())setTimeout(function(){showToast('Demo mode: Add a YouTube API key for live search','info')},1000)}
+function initApp(){loadSettings();loadFavorites();loadHistory();initAudioPlayer();setupEventListeners();initVisualizer();renderHome();if(isDemoMode())setTimeout(function(){showToast('Demo mode: Live search is mocked','info')},1000)}
 document.addEventListener('DOMContentLoaded',initApp);
 
 // --- Advanced Visualizer Engine ---
@@ -647,29 +688,25 @@ function resizeVisualizer() {
     vizCanvas.height = vizCanvas.offsetHeight * (window.devicePixelRatio || 1);
   }
 }
+var smoothBass = 0, smoothMid = 0, smoothTreble = 0;
+var lastBeatTime = 0, beatPulse = 1;
+
 function cycleVisualizerMode() {
-  vizMode = (vizMode + 1) % 6;
+  vizMode = (vizMode + 1) % 4;
   
   var thumb = document.getElementById('fp-thumb');
-  if (vizMode === 4) thumb.classList.add('album-art-animator');
-  else thumb.classList.remove('album-art-animator');
-
+  if(thumb) thumb.classList.remove('album-art-animator');
   var vc = document.querySelector('.fp-visuals-container');
-  if (vc) {
-    if (vizMode === 5) vc.classList.add('show-equalizer');
-    else vc.classList.remove('show-equalizer');
-  }
+  if(vc) vc.classList.remove('show-equalizer');
 
   if (vizMode === 0) {
     if (vizCtx) vizCtx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
     showToast('Visualizer: Off', 'info');
-  } else if (vizMode === 1) showToast('Visualizer: Neon Waveform', 'info');
-  else if (vizMode === 2) showToast('Visualizer: Geometric Pattern', 'info');
-  else if (vizMode === 3) showToast('Visualizer: Particle System', 'info');
-  else if (vizMode === 4) showToast('Visualizer: Album Art Animator', 'info');
-  else if (vizMode === 5) showToast('Visualizer: Equalizer Bars', 'info');
+  } else if (vizMode === 1) showToast('Visualizer: Frequency Bars', 'info');
+  else if (vizMode === 2) showToast('Visualizer: Circular Spectrum', 'info');
+  else if (vizMode === 3) showToast('Visualizer: Waveform', 'info');
 
-  if (vizMode > 0 && vizMode !== 4 && state.isPlaying) {
+  if (vizMode > 0 && state.isPlaying) {
     if (!vizRAF) vizRAF = requestAnimationFrame(renderVisualizer);
   }
 }
@@ -677,9 +714,10 @@ function cycleVisualizerMode() {
 function renderVisualizer(time) {
   if (!vizCtx || !vizCanvas) return;
   if (vizCanvas.width === 0 || vizCanvas.height === 0) resizeVisualizer();
-  if (!state.isPlaying || vizMode === 0 || vizMode === 4) {
+  
+  if (!state.isPlaying || vizMode === 0) {
     vizRAF = null;
-    if (vizMode === 0 || vizMode === 4) vizCtx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
+    if (vizMode === 0) vizCtx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
     return;
   }
 
@@ -690,95 +728,104 @@ function renderVisualizer(time) {
 
   vizCtx.clearRect(0, 0, w, h);
   vizCtx.globalCompositeOperation = 'screen';
-  
-  var colorIndex = Math.floor(time / 3000) % vizColors.length;
-  var color = vizColors[colorIndex];
-  var beat = 1 + Math.sin(time / 200) * 0.15;
 
-  if (vizMode === 1) { // Neon Waveform
-    vizCtx.beginPath();
-    vizCtx.moveTo(0, cy);
-    vizCtx.lineWidth = 5 * beat;
-    vizCtx.strokeStyle = color;
-    vizCtx.shadowBlur = 25;
-    vizCtx.shadowColor = color;
-    for (var i = 0; i < w; i += 4) {
-      var amp = 50 * beat * Math.sin(i * 0.05 + time / 400) * Math.sin(i * 0.01 + time / 800);
-      vizCtx.lineTo(i, cy + amp);
-    }
-    vizCtx.stroke();
-  } 
-  else if (vizMode === 2) { // Geometric Pattern
-    vizCtx.lineWidth = 4;
-    vizCtx.strokeStyle = color;
-    vizCtx.shadowBlur = 20;
-    vizCtx.shadowColor = color;
-    vizCtx.save();
-    vizCtx.translate(cx, cy);
-    vizCtx.rotate(time / 1500);
-    for (var ring = 1; ring <= 5; ring++) {
-      var radius = (35 * ring) * beat;
-      vizCtx.beginPath();
-      for (var s = 0; s < 3; s++) { // Triangles
-        var angle = s * (Math.PI * 2 / 3);
-        var px = Math.cos(angle) * radius;
-        var py = Math.sin(angle) * radius;
-        if (s === 0) vizCtx.moveTo(px, py);
-        else vizCtx.lineTo(px, py);
-      }
-      vizCtx.closePath();
-      vizCtx.stroke();
-      vizCtx.rotate(-Math.PI / 10);
-    }
-    vizCtx.restore();
+  if (!analyser || !freqData || !timeData) {
+    vizRAF = requestAnimationFrame(renderVisualizer);
+    return;
   }
-  else if (vizMode === 3) { // Particle System
-    if (Math.random() > 0.4) {
-      var angle = Math.random() * Math.PI * 2;
-      var speed = 3 + Math.random() * 4;
-      vizParticles.push({
-        x: cx, y: cy,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        life: 1.0,
-        color: vizColors[Math.floor(Math.random() * vizColors.length)]
-      });
+
+  analyser.getByteFrequencyData(freqData);
+  analyser.getByteTimeDomainData(timeData);
+
+  var bassEnergy = 0, midEnergy = 0, trebleEnergy = 0;
+  var bassCount = 0, midCount = 0, trebleCount = 0;
+  
+  for(var i=0; i<analyser.frequencyBinCount; i++) {
+    var val = freqData[i];
+    var freq = i * (audioCtx.sampleRate / 2) / analyser.frequencyBinCount;
+    if(freq < 250) { bassEnergy += val; bassCount++; }
+    else if(freq < 2000) { midEnergy += val; midCount++; }
+    else if(freq < 16000) { trebleEnergy += val; trebleCount++; }
+  }
+  
+  bassEnergy = bassCount > 0 ? bassEnergy / bassCount : 0;
+  midEnergy = midCount > 0 ? midEnergy / midCount : 0;
+  trebleEnergy = trebleCount > 0 ? trebleEnergy / trebleCount : 0;
+
+  smoothBass += (bassEnergy - smoothBass) * 0.15;
+  smoothMid += (midEnergy - smoothMid) * 0.12;
+  smoothTreble += (trebleEnergy - smoothTreble) * 0.10;
+
+  if (bassEnergy > smoothBass * 1.3 && time - lastBeatTime > 300) {
+    beatPulse = 1.4;
+    lastBeatTime = time;
+  }
+  beatPulse = Math.max(1, beatPulse * 0.90);
+
+  var colorIndex = Math.floor(time / 4000) % vizColors.length;
+  var color = vizColors[colorIndex];
+  vizCtx.strokeStyle = color;
+  vizCtx.fillStyle = color;
+  vizCtx.shadowColor = color;
+  vizCtx.shadowBlur = 15;
+
+  if (vizMode === 1) { 
+    var bars = 64;
+    var step = Math.floor(analyser.frequencyBinCount / bars);
+    var barWidth = (w / bars) - 2;
+    for (var i = 0; i < bars; i++) {
+      var sum = 0;
+      for(var j=0; j<step; j++) sum += freqData[i*step + j];
+      var avg = sum / step;
+      var height = (avg / 255) * h * 0.8 * beatPulse;
+      vizCtx.fillRect(i * (barWidth + 2), h - height, barWidth, height);
     }
-    for (var i = vizParticles.length - 1; i >= 0; i--) {
-      var p = vizParticles[i];
-      p.x += p.vx * beat;
-      p.y += p.vy * beat;
-      p.life -= 0.015;
-      if (p.life <= 0) { vizParticles.splice(i, 1); continue; }
+  } 
+  else if (vizMode === 2) { 
+    vizCtx.lineWidth = 3;
+    var bars = 90;
+    var radius = (Math.min(w, h) / 4) * beatPulse;
+    
+    vizCtx.beginPath();
+    vizCtx.arc(cx, cy, radius - 10, 0, Math.PI * 2);
+    vizCtx.stroke();
+
+    for (var i = 0; i < bars; i++) {
+      var val = freqData[Math.floor(i * (analyser.frequencyBinCount / bars))];
+      var barHeight = (val / 255) * (Math.min(w,h) / 3);
+      var angle = (i * Math.PI * 2) / bars - Math.PI / 2;
+      
+      var x1 = cx + Math.cos(angle) * radius;
+      var y1 = cy + Math.sin(angle) * radius;
+      var x2 = cx + Math.cos(angle) * (radius + barHeight);
+      var y2 = cy + Math.sin(angle) * (radius + barHeight);
       
       vizCtx.beginPath();
-      vizCtx.arc(p.x, p.y, 5 * p.life, 0, Math.PI * 2);
-      vizCtx.fillStyle = p.color;
-      vizCtx.globalAlpha = p.life;
-      vizCtx.shadowBlur = 15;
-      vizCtx.shadowColor = p.color;
-      vizCtx.fill();
+      vizCtx.moveTo(x1, y1);
+      vizCtx.lineTo(x2, y2);
+      vizCtx.stroke();
     }
-    vizCtx.globalAlpha = 1.0;
   }
-  else if (vizMode === 5) { // Equalizer Bars
-    var bars = 24;
-    var barWidth = w / bars;
-    vizCtx.fillStyle = color;
-    vizCtx.shadowBlur = 15;
-    vizCtx.shadowColor = color;
-    for (var i = 0; i < bars; i++) {
-      var height = (Math.sin(time / 200 + i * 0.4) * 0.5 + 0.5) * h * 0.5 * beat;
-      height += Math.random() * 30 * beat;
-      vizCtx.fillRect(i * barWidth + 2, h - height, barWidth - 4, height);
+  else if (vizMode === 3) { 
+    vizCtx.lineWidth = 4;
+    vizCtx.beginPath();
+    var sliceWidth = w / analyser.fftSize;
+    var x = 0;
+    for (var i = 0; i < analyser.fftSize; i++) {
+      var v = timeData[i] / 128.0; 
+      var y = (v * h / 2);
+      if (i === 0) vizCtx.moveTo(x, y);
+      else vizCtx.lineTo(x, y);
+      x += sliceWidth;
     }
+    vizCtx.stroke();
   }
   
   vizRAF = requestAnimationFrame(renderVisualizer);
 }
 
 function triggerVisualizer() {
-  if (state.isPlaying && vizMode > 0 && vizMode !== 4 && !vizRAF) {
+  if (state.isPlaying && vizMode > 0 && !vizRAF) {
     vizRAF = requestAnimationFrame(renderVisualizer);
   }
 }
